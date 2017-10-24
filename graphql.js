@@ -1,19 +1,30 @@
-"use latest"
-const { graphql, buildSchema } = require('graphql');
+const express = require('express')
+const graphqlHTTP = require('express-graphql')
+const { buildSchema } = require('graphql')
+const app = express()
+const webtask = require('webtask-tools')
+const bodyParser = require('body-parser')
+
 const schema = buildSchema(`
 type Query {
   hello: String
 }
-`);
-const root = { hello: () => 'Hello world!' };
+`)
+const root = { hello: () => 'Hello world!' }
 
-module.exports = function (context, cb) {
-graphql(schema, context.body.data, root)
-    .then(data => {
-        cb(null,  {
-        "statusCode": 200,
-        "body": JSON.stringify(data.data)
-      })
-    })
-    .catch(err => cb(err))
-};
+app.use(bodyParser.urlencoded({ extended: true }))
+app.use(bodyParser.json())
+
+app.post('/', graphqlHTTP({
+  schema: schema,
+  rootValue: root,
+  graphiql: false
+}))
+
+app.get('/', graphqlHTTP({
+  schema: schema,
+  rootValue: root,
+  graphiql: true
+}))
+
+module.exports = webtask.fromExpress(app)
